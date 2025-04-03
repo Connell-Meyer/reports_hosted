@@ -1,14 +1,12 @@
 ### Libraries ###
 import streamlit as st
-import st_pages
-import pandas as pd
-import numpy as np
-import plotly.express as px
 
-### Layout ###
+### Page Setup ###
 st.set_page_config(
     layout="centered",
     initial_sidebar_state="expanded",
+    page_title="Home",
+    page_icon='🏭'
 )
 st.logo('./misc/meyer-logo.png')
 
@@ -17,10 +15,12 @@ st.logo('./misc/meyer-logo.png')
 # Logo
 col1, col2, col3 = st.columns(3)
 with col2:
-    st.image('./misc/meyer-logo.png', use_container_width="auto")
+    st.image('./misc/meyer-logo.png', use_container_width=True)
 
 # Title
 st.title("Quality Reports")
 st.divider()
 
-st.title('test')
+# Trends
+st.subheader("Override Report Trends")
+st.text("Show trend of override numbers over the last couple of months/weeks")
