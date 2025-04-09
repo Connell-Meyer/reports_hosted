@@ -1,0 +1,68 @@
+altair==5.5.0
+attrs==25.3.0
+blinker==1.9.0
+Bottleneck @ file:///C:/b/abs_816hr2khp1/croot/bottleneck_1731058648110/work
+Brotli @ file:///C:/b/abs_c415aux9ra/croot/brotli-split_1736182803933/work
+cachetools==5.5.2
+certifi==2025.1.31
+charset-normalizer==3.4.1
+click==8.1.8
+colorama==0.4.6
+contourpy @ file:///C:/b/abs_f2u2o_8s9g/croot/contourpy_1732540071787/work
+cx_Oracle @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/cx_oracle_1729088573103/work
+cycler @ file:///tmp/build/80754af9/cycler_1637851556182/work
+fonttools @ file:///C:/b/abs_4crkswws2h/croot/fonttools_1737040078745/work
+gitdb==4.0.12
+GitPython==3.1.44
+idna==3.10
+Jinja2==3.1.6
+jsonschema==4.23.0
+jsonschema-specifications==2024.10.1
+kiwisolver @ file:///C:/b/abs_faf90xet7a/croot/kiwisolver_1737040915779/work
+markdown-it-py @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/markdown-it-py_1729039967492/work
+MarkupSafe==3.0.2
+matplotlib==3.10.0
+mdurl @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/mdurl_1729039154828/work
+mkl-service==2.4.0
+mkl_fft @ file:///C:/Users/dev-admin/mkl/mkl_fft_1730824198951/work
+mkl_random @ file:///C:/Users/dev-admin/mkl/mkl_random_1730824302834/work
+narwhals==1.31.0
+numexpr @ file:///C:/Users/dev-admin/buildout/perseverance-python-buildout/croot/numexpr_1731700337214/work
+numpy==2.2.4
+packaging==24.2
+pandas==2.2.3
+pillow==11.1.0
+plotly @ file:///C:/b/abs_28qon8a90a/croot/plotly_1740385581534/work
+protobuf==5.29.4
+pyarrow==19.0.1
+pydeck==0.9.1
+Pygments @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/pygments_1729039250192/work
+pyparsing @ file:///C:/Users/dev-admin/buildout/croot/pyparsing_1735861809022/work
+PyQt6==6.7.1
+PyQt6_sip @ file:///C:/b/abs_28s7k4h_hl/croot/pyqt-split_1740498234166/work/pyqt_sip
+PySocks @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/pysocks_1729039320841/work
+python-dateutil==2.9.0.post0
+pytz==2025.1
+PyYAML @ file:///C:/b/abs_79lqlbkifj/croot/pyyaml_1731006239057/work
+referencing==0.36.2
+requests==2.32.3
+rich @ file:///C:/b/abs_8b92fzmygg/croot/rich_1732638991774/work
+rpds-py==0.23.1
+seaborn @ file:///C:/b/abs_522_0_dy9p/croot/seaborn_1741187268016/work
+setuptools==72.1.0
+sip @ file:///C:/b/abs_5cto136kse/croot/sip_1738856220313/work
+six==1.17.0
+smmap==5.0.2
+st-pages==1.0.1
+streamlit==1.43.2
+streamlit-plotly-events==0.0.6
+tenacity==9.0.0
+toml==0.10.2
+toolz @ file:///C:/b/abs_57avamxh36/croot/toolz_1736796279321/work
+tornado==6.4.2
+typing_extensions==4.12.2
+tzdata==2025.1
+urllib3==2.3.0
+watchdog==6.0.0
+wheel==0.45.1
+win_inet_pton @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/win_inet_pton_1729038644686/work
