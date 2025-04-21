@@ -9,7 +9,10 @@ charset-normalizer>=3.3.2
 click==8.1.8
 colorama>=0.4.6
 contourpy>=1.2.0
-cx-Oracle  # Optional: Only include if your app uses it (requires Oracle client)
+
+# ❗️Optional: Only include if your app uses Oracle DB (requires Oracle Client libs)
+# cx-Oracle
+
 cycler>=0.12.1
 fonttools>=4.51.0
 gitdb==4.0.12
@@ -23,9 +26,12 @@ markdown-it-py>=3.0.0
 MarkupSafe>=2.1.5
 matplotlib==3.10.0
 mdurl>=0.1.2
+
+# 🔄 Relaxed this to allow compatible versions for Python 3.12
 mkl-service>=2.4.0,<3.0.0
-mkl_fft==1.3.8
-mkl_random==1.3.8
+mkl_fft>=1.3.11  # Python 3.12 compatible versions start at 1.3.11
+mkl_random>=1.2.2  # Relaxed to avoid ABI issues
+
 narwhals==1.31.0
 numexpr>=2.9.0
 numpy==2.2.4
@@ -38,8 +44,11 @@ pyarrow==19.0.1
 pydeck>=0.8.0
 Pygments>=2.19.1
 pyparsing>=3.1.2
-PyQt6==6.7.1  # Optional: Only include if your app actually needs it
-PyQt6-sip==13.7.1
+
+# ❗️Optional: Only include if your app actually needs PyQt GUI components
+# PyQt6==6.7.1
+# PyQt6-sip==13.7.1
+
 PySocks>=1.7.1
 python-dateutil>=2.9.0.post0
 pytz>=2024.1
@@ -64,4 +73,6 @@ tzdata>=2024.1
 unicodedata2>=15.1.0
 urllib3>=2.2.1
 watchdog==6.0.0
+
+# ✅ Safe for local Windows, ignored on Linux (Streamlit Cloud)
 win-inet-pton; platform_system == "Windows"
