@@ -10,11 +10,13 @@ import plotly.graph_objects as go
 # Streamlit
 import streamlit as st
 # Secrity
-import getpass # Alt: from pwinput import pwinput
+#import getpass # Alt: from pwinput import pwinput
 # Oracle library
 import cx_Oracle
 # General Python libaries
 import datetime
+# Functions
+from misc.data_utils import (build_queries, run_query, clean_df_IA, clean_df_IB, clean_df_MMF)
 
 
 ### Page Setup ###
@@ -43,7 +45,7 @@ st.divider()
 today = datetime.date.today()
 yesterday = today - datetime.timedelta(days=1)
 day_before_yesterday = today - datetime.timedelta(days=2)
-pull_range = yesterday - datetime.timedelta(days=60)
+pull_range = yesterday - datetime.timedelta(days=120)
 
 # Date range input with constraints
 start_date, end_date = st.date_input(
@@ -58,127 +60,20 @@ st.divider()
 start_date_str = start_date.strftime("%d-%b-%Y")
 end_date_str = end_date.strftime("%d-%b-%Y")
 
-# SQL query with dynamic date range
-query_IA = f"""
-SELECT process_plan_id, inspect_type, inspection_id, serial_no,
-insp_emp_id, TO_CHAR(date_time, 'DD-MON-YYYY HH24:MI:SS') AS DATE_TIME,
-NVL(accept_comment, 'x') AS ACCEPT_COMMENT, NVL(part_program, 'x') AS PART_PROGRAM
-FROM inspect.inspect_sum_results
-WHERE date_time BETWEEN TO_DATE('{start_date_str}', 'DD-MON-YYYY') 
-                    AND TO_DATE('{end_date_str}', 'DD-MON-YYYY')
-AND insp_mach_id IN (
-    SELECT m.machine_id FROM mpcs.machine m
-    WHERE NVL(machine_type, 'x') = 'DEPARTMENT'
-)
-"""
+# Generate queries
+query_IA, query_IB, query_MMF = build_queries(start_date_str, end_date_str)
 
-query_IB = f"""
-WITH ranked_ships AS (
-    SELECT 
-        s.release_no, 
-        s.lot_no, 
-        s.serial_no, 
-        s.resource_no, 
-        s.resource_type, 
-        ROW_NUMBER() OVER (PARTITION BY s.release_no ORDER BY s.lot_no) AS rn
-    FROM mpcs.ship_release_ser s
-)
-SELECT DISTINCT 
-    l.record_user, 
-    l.log_comment, 
-    r.lot_no, 
-    r.serial_no, 
-    r.resource_no, 
-    r.resource_type, 
-    res.resource_name,
-    lot.process_plan_id,
-    TO_CHAR(l.log_date, 'DD-MON-YYYY') AS log_date
-FROM mpcs.mpcs_log l
-JOIN ranked_ships r ON r.release_no = REGEXP_SUBSTR(l.log_comment, 'REL: ([0-9]+)', 1, 1, NULL, 1)
-JOIN mpcs.lot lot ON r.lot_no = lot.lot_no
-JOIN mpcs.part_resource res ON r.resource_no = res.resource_no  
-                              AND r.resource_type = res.resource_type  
-WHERE l.log_date BETWEEN TO_DATE('{start_date_str}', 'DD-MON-YYYY')  
-                    AND TO_DATE('{end_date_str}', 'DD-MON-YYYY')
-AND l.table_nm LIKE 'SHIP_RELEASE%'
-AND l.screen_nm LIKE 'RELEASE.SQR%'
-AND l.log_comment LIKE 'REL%PRINTED%(Acc%)'
-AND r.rn = 1
-"""
-
-query_MMF = f"""
-SELECT process_plan_id, process_step_id, lot_no, serial_no,
-accept_emp_id, TO_CHAR(date_time, 'DD-MON-YYYY HH24:MI:SS') AS DATE_TIME,
-accept_comments, current_oper_desc, current_part_program,
-current_feature_count
-FROM mpcs.mfg_process_accept
-WHERE date_time BETWEEN TO_DATE('{start_date_str}', 'DD-MON-YYYY') 
-                    AND TO_DATE('{end_date_str}', 'DD-MON-YYYY')
-"""
-
-## Connection + Pull ##
+# Connect and fetch data
 conn = cx_Oracle.connect(user=username, password=password, dsn=dsn_tns)
-
-# Table 1 - Override on Inspection A #
-cursor = conn.cursor()
-cursor.execute(query_IA)
-rows = cursor.fetchall()
-columns = [col[0] for col in cursor.description]
-df_IA = pd.DataFrame(rows, columns=columns)
-cursor.close()
-
-# Table 2 - Override Inspection B #
-cursor = conn.cursor()
-cursor.execute(query_IB)
-rows = cursor.fetchall()
-columns = [col[0] for col in cursor.description]
-df_IB = pd.DataFrame(rows, columns=columns)
-cursor.close()
-
-# Table 3 - Missing Manufacturing Feature #
-cursor = conn.cursor()
-cursor.execute(query_MMF)
-rows = cursor.fetchall()
-columns = [col[0] for col in cursor.description]
-df_MMF = pd.DataFrame(rows, columns=columns)
-cursor.close()
-
-# Connection close
+df_IA = run_query(conn, query_IA)
+df_IB = run_query(conn, query_IB)
+df_MMF = run_query(conn, query_MMF)
 conn.close()
 
-## Data Clean ##
-# df_IA
-cat_cols = ['PROCESS_PLAN_ID', 'INSPECT_TYPE', 'INSPECTION_ID', 'SERIAL_NO', 'INSP_EMP_ID', 'PART_PROGRAM']
-date_time_cols = ['DATE_TIME']    
-object_cols = ['ACCEPT_COMMENT']
-df_IA[cat_cols] = df_IA[cat_cols].astype('category')
-df_IA[date_time_cols] = df_IA[date_time_cols].apply(pd.to_datetime, format="mixed")
-df_IA[object_cols] = df_IA[object_cols].astype('object')
-
-# df_IB
-df_IB['RELEASE_NUMBER'] = df_IB['LOG_COMMENT'].str.extract(r'REL: (\d+)')
-df_IB['ACCEPTED'] = df_IB['LOG_COMMENT'].str.extract(r'Accepted: (\d+)').astype(int)
-df_IB['TOTAL'] = df_IB['LOG_COMMENT'].str.extract(r'Out of: (\d+)').astype(int)
-df_IB['PROGRAM'] = df_IB['LOG_COMMENT'].str.extract(r'sampling not enough for: (.*?);?\)')
-df_IB['RELEASE_NUMBER'] = df_IB['RELEASE_NUMBER'].astype(int)
-df_IB = df_IB.drop(columns=['LOG_COMMENT'])
-cat_cols = ['RECORD_USER', 'RELEASE_NUMBER', 'PROGRAM']
-df_IB[cat_cols] = df_IB[cat_cols].astype('category')
-
-# df_MMF
-df_MMF['OP'] = df_MMF['CURRENT_OPER_DESC'].str.extract(r'^(\d+)')
-df_MMF['OP_DESC'] = df_MMF['CURRENT_OPER_DESC'].str.extract(r'^\d+\s*-\s*(.*)')
-df_MMF[['VANE', 'LOOP_CNT', 'REQD_FEATURES', 'TOTAL']] = df_MMF['CURRENT_FEATURE_COUNT'].str.extract(
-    r'VANE: (\d+) - LOOP CNT: (\d+) - REQRD FEATURES: (\d+) - TOTAL: (\d+)'
-)
-df_MMF[['VANE', 'LOOP_CNT', 'REQD_FEATURES', 'TOTAL']] = df_MMF[['VANE', 'LOOP_CNT', 'REQD_FEATURES', 'TOTAL']].apply(pd.to_numeric)
-df_MMF.drop(columns = ['CURRENT_OPER_DESC', 'CURRENT_FEATURE_COUNT'], inplace=True)
-cat_cols = ['PROCESS_PLAN_ID', 'PROCESS_STEP_ID', 'LOT_NO', 'SERIAL_NO', 'ACCEPT_EMP_ID', 'CURRENT_PART_PROGRAM', 'OP']
-date_time_cols = ['DATE_TIME']    
-object_cols = ['ACCEPT_COMMENTS', 'OP_DESC']
-df_MMF[cat_cols] = df_MMF[cat_cols].astype('category')
-df_MMF[date_time_cols] = df_MMF[date_time_cols].apply(pd.to_datetime, format="mixed")
-df_MMF[object_cols] = df_MMF[object_cols].astype('object')
+# Clean up
+df_IA = clean_df_IA(df_IA)
+df_IB = clean_df_IB(df_IB)
+df_MMF = clean_df_MMF(df_MMF)
 
 
 ### Plotting ###
@@ -221,6 +116,7 @@ fig_MMF.update_traces(textposition='outside')
 st.plotly_chart(fig_MMF, use_container_width=True)
 
 # Deep Dive into data
+#TODO: Seperate Plan ID and OP to allow for better selection, use columns, also use multiselector
 with st.form('MMF_Deep_Dive'):
     selected_plan_op_MMF = st.selectbox("Select a Process Plan ID and OP combination", df_top10_MMF['PLAN_OP'])
     MMF_submit = st.form_submit_button('Submit')
@@ -235,6 +131,7 @@ with st.form('MMF_Deep_Dive'):
         # Display filtered data
         st.write(f"### Entries for {selected_plan_id_MMF} - OP {selected_op_MMF}:")
         st.dataframe(filtered_df_MMF)
+
 
 ## Override Inspection A ##
 st.divider()
@@ -276,7 +173,8 @@ fig_IA.update_layout(
 fig_IA.update_traces(textposition='outside')
 st.plotly_chart(fig_IA, use_container_width=True)
 
-# Deep Dive into data
+# Deep Dive into data'
+#TODO: Seperate Plan ID and OP to allow for better selection, use columns, also use multiselector
 with st.form('IA_Deep_Dive'):
     selected_plan_program_IA = st.selectbox("Select a Process Plan ID and PROGRAM combination", df_top10_IA['PLAN_PROGRAM'])
     IA_submit = st.form_submit_button('Submit')
