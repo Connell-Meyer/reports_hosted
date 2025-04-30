@@ -1,8 +1,6 @@
-streamlit
 # Core libraries
 pandas==2.2.1
 numpy==1.26.4
-datetime  # Part of Python stdlib, included for clarity
 
 # Visualization
 matplotlib==3.8.4
