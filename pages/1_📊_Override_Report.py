@@ -9,10 +9,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 # Streamlit
 import streamlit as st
-# Secrity
-#import getpass # Alt: from pwinput import pwinput
-# Oracle library
-import cx_Oracle
 # General Python libaries
 import datetime
 # Functions
@@ -27,7 +23,6 @@ st.set_page_config(
     page_title='Override Report',
     page_icon='📊'
 )
-st.logo('./misc/meyer-logo.png')
 
 
 ### Page Start ###

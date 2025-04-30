@@ -1,18 +1,21 @@
 # data_utils.py
 # This is a place for Data related functions to be called on in the main code
 import pandas as pd
-import cx_Oracle
+import oracledb
 
 def get_oracle_connection():
-    dsn = cx_Oracle.makedsn(
-        host="mtora11.meyertool.com",
-        port="1521",
-        service_name="mpcs_stby.meyertool.com"
-    )
-    return cx_Oracle.connect(
+    # Use thin mode explicitly (recommended for cloud deployment)
+    oracledb.init_oracle_client(lib_dir=None)  # optional in thin mode; can be removed
+
+    # Correct DSN format for thin mode
+    dsn = oracledb.makedsn('mtora11.meyertool.com', 1521, service_name='mpcs_stby.meyertool.com')
+
+    # Connecting with the proper DSN
+    return oracledb.connect(
         user="CPHILLIPPS",
         password="readonly4887",
-        dsn=dsn
+        dsn=dsn,
+        mode=oracledb.DEFAULT_AUTH
     )
 
 def build_queries(start_date_str, end_date_str):

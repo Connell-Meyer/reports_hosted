@@ -13,8 +13,6 @@ st.set_page_config(
     page_icon='🏭',
 )
 
-st.logo('./misc/meyer-logo.png')
-
 ### Page Start ###
 # Logo
 col1, col2, col3 = st.columns(3)
