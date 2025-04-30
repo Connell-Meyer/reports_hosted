@@ -3,6 +3,17 @@
 import pandas as pd
 import cx_Oracle
 
+def get_oracle_connection():
+    dsn = cx_Oracle.makedsn(
+        host="mtora11.meyertool.com",
+        port="1521",
+        service_name="mpcs_stby.meyertool.com"
+    )
+    return cx_Oracle.connect(
+        user="CPHILLIPPS",
+        password="readonly4887",
+        dsn=dsn
+    )
 
 def build_queries(start_date_str, end_date_str):
     query_IA = f"""
@@ -109,3 +120,66 @@ def clean_df_MMF(df):
     df[date_time_cols] = df[date_time_cols].apply(pd.to_datetime, format="mixed")
     df[object_cols] = df[object_cols].astype('object')
     return df
+
+
+def build_summary_queries(start_date_str, end_date_str, granularity):
+    if granularity == "Daily":
+        date_format = 'YYYY-MM-DD'
+    elif granularity == "Weekly":
+        date_format = 'IYYY-IW'  # ISO Year-Week
+    elif granularity == "Monthly":
+        date_format = 'YYYY-MM'
+    else:
+        raise ValueError("Invalid granularity. Choose 'Daily', 'Weekly', or 'Monthly'.")
+
+    # --- IA ---
+    query_IA_summary = f"""
+    SELECT TO_CHAR(date_time, '{date_format}') AS EVENT_DATE, COUNT(*) AS COUNT
+    FROM inspect.inspect_sum_results
+    WHERE date_time BETWEEN TO_DATE('{start_date_str}', 'DD-MON-YYYY') 
+                        AND TO_DATE('{end_date_str}', 'DD-MON-YYYY')
+      AND insp_mach_id IN (
+          SELECT machine_id FROM mpcs.machine WHERE NVL(machine_type, 'x') = 'DEPARTMENT'
+      )
+    GROUP BY TO_CHAR(date_time, '{date_format}')
+    ORDER BY EVENT_DATE
+    """
+
+    # --- IB ---
+    query_IB_summary = f"""
+    WITH ranked_ships AS (
+        SELECT 
+            s.release_no, 
+            s.lot_no, 
+            s.serial_no, 
+            s.resource_no, 
+            s.resource_type, 
+            ROW_NUMBER() OVER (PARTITION BY s.release_no ORDER BY s.lot_no) AS rn
+        FROM mpcs.ship_release_ser s
+    )
+    SELECT TO_CHAR(l.log_date, '{date_format}') AS EVENT_DATE, COUNT(DISTINCT r.release_no) AS COUNT
+    FROM mpcs.mpcs_log l
+    JOIN ranked_ships r ON r.release_no = REGEXP_SUBSTR(l.log_comment, 'REL: ([0-9]+)', 1, 1, NULL, 1)
+    JOIN mpcs.lot lot ON r.lot_no = lot.lot_no
+    JOIN mpcs.part_resource res ON r.resource_no = res.resource_no AND r.resource_type = res.resource_type
+    WHERE l.log_date BETWEEN TO_DATE('{start_date_str}', 'DD-MON-YYYY') 
+                          AND TO_DATE('{end_date_str}', 'DD-MON-YYYY')
+      AND l.table_nm LIKE 'SHIP_RELEASE%'
+      AND l.screen_nm LIKE 'RELEASE.SQR%'
+      AND l.log_comment LIKE 'REL%PRINTED%(Acc%)'
+      AND r.rn = 1
+    GROUP BY TO_CHAR(l.log_date, '{date_format}')
+    ORDER BY EVENT_DATE
+    """
+
+    # --- MMF ---
+    query_MMF_summary = f"""
+    SELECT TO_CHAR(date_time, '{date_format}') AS EVENT_DATE, COUNT(*) AS COUNT
+    FROM mpcs.mfg_process_accept
+    WHERE date_time BETWEEN TO_DATE('{start_date_str}', 'DD-MON-YYYY') 
+                        AND TO_DATE('{end_date_str}', 'DD-MON-YYYY')
+    GROUP BY TO_CHAR(date_time, '{date_format}')
+    ORDER BY EVENT_DATE
+    """
+
+    return query_IA_summary, query_IB_summary, query_MMF_summary

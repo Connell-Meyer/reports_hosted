@@ -17,23 +17,17 @@ import cx_Oracle
 import datetime
 # Functions
 from misc.data_utils import (build_queries, run_query, clean_df_IA, clean_df_IB, clean_df_MMF)
+from misc.data_utils import get_oracle_connection
 
 
 ### Page Setup ###
 st.set_page_config(
-    layout="centered",
+    layout="wide",
     initial_sidebar_state="expanded",
     page_title='Override Report',
     page_icon='📊'
 )
 st.logo('./misc/meyer-logo.png')
-## Oracle Connection
-host = "mtora11.meyertool.com" 
-port = "1521" 
-service_name = "mpcs_stby.meyertool.com" 
-username = "CPHILLIPPS"
-password = 'readonly4887'
-dsn_tns = cx_Oracle.makedsn(host, port, service_name=service_name)
 
 
 ### Page Start ###
@@ -64,7 +58,7 @@ end_date_str = end_date.strftime("%d-%b-%Y")
 query_IA, query_IB, query_MMF = build_queries(start_date_str, end_date_str)
 
 # Connect and fetch data
-conn = cx_Oracle.connect(user=username, password=password, dsn=dsn_tns)
+conn = get_oracle_connection()
 df_IA = run_query(conn, query_IA)
 df_IB = run_query(conn, query_IB)
 df_MMF = run_query(conn, query_MMF)
@@ -116,21 +110,34 @@ fig_MMF.update_traces(textposition='outside')
 st.plotly_chart(fig_MMF, use_container_width=True)
 
 # Deep Dive into data
-#TODO: Seperate Plan ID and OP to allow for better selection, use columns, also use multiselector
 with st.form('MMF_Deep_Dive'):
-    selected_plan_op_MMF = st.selectbox("Select a Process Plan ID and OP combination", df_top10_MMF['PLAN_OP'])
+    selected_plan_op_MMF = st.multiselect(
+        "Select a Process Plan ID and OP combination", 
+        df_top10_MMF['PLAN_OP']
+    )
     MMF_submit = st.form_submit_button('Submit')
-    if MMF_submit:
-        selected_plan_id_MMF, selected_op_MMF = selected_plan_op_MMF.split(" - OP ")
-        selected_plan_id_MMF = int(selected_plan_id_MMF)
-        selected_op_MMF = str(selected_op_MMF)
 
-        # Filter the original dataframe
-        filtered_df_MMF = df_MMF[(df_MMF['PROCESS_PLAN_ID'] == selected_plan_id_MMF) & (df_MMF['OP'] == selected_op_MMF)]
+    if MMF_submit and selected_plan_op_MMF:
+        filtered_dfs = []
 
-        # Display filtered data
-        st.write(f"### Entries for {selected_plan_id_MMF} - OP {selected_op_MMF}:")
-        st.dataframe(filtered_df_MMF)
+        for item in selected_plan_op_MMF:
+            selected_plan_id_MMF, selected_op_MMF = item.split(" - OP ")
+            selected_plan_id_MMF = int(selected_plan_id_MMF)
+            selected_op_MMF = str(selected_op_MMF)
+
+            # Filter and collect each result
+            filtered = df_MMF[
+                (df_MMF['PROCESS_PLAN_ID'] == selected_plan_id_MMF) & 
+                (df_MMF['OP'] == selected_op_MMF)
+            ]
+            filtered_dfs.append(filtered)
+
+        # Combine all filtered results into one DataFrame
+        combined_df = pd.concat(filtered_dfs, ignore_index=True)
+
+        # Display combined data
+        st.write(f"### Combined Entries for Selected PLAN_OPs:")
+        st.dataframe(combined_df)
 
 
 ## Override Inspection A ##
@@ -174,22 +181,92 @@ fig_IA.update_traces(textposition='outside')
 st.plotly_chart(fig_IA, use_container_width=True)
 
 # Deep Dive into data'
-#TODO: Seperate Plan ID and OP to allow for better selection, use columns, also use multiselector
 with st.form('IA_Deep_Dive'):
-    selected_plan_program_IA = st.selectbox("Select a Process Plan ID and PROGRAM combination", df_top10_IA['PLAN_PROGRAM'])
+    selected_plan_program_IA = st.multiselect(
+        "Select one or more Process Plan ID and PROGRAM combinations", 
+        df_top10_IA['PLAN_PROGRAM']
+    )
     IA_submit = st.form_submit_button('Submit')
-    if IA_submit:
-        selected_plan_id_IA, selected_program_IA = selected_plan_program_IA.split(" - ")
-        selected_plan_id_IA = int(selected_plan_id_IA)
-        selected_program_IA = str(selected_program_IA)
 
-        # Filter the original dataframe
-        filtered_df_IA = df_IA[(df_IA['PROCESS_PLAN_ID'] == selected_plan_id_IA) & (df_IA['PART_PROGRAM'] == selected_program_IA)]
+    if IA_submit and selected_plan_program_IA:
+        filtered_dfs = []
 
-        # Display filtered data
-        st.write(f"### Entries for {selected_plan_id_IA} - {selected_program_IA}:")
-        st.dataframe(filtered_df_IA)
+        for item in selected_plan_program_IA:
+            selected_plan_id_IA, selected_program_IA = item.split(" - ")
+            selected_plan_id_IA = int(selected_plan_id_IA)
+            selected_program_IA = str(selected_program_IA)
+
+            # Filter and collect each result
+            filtered = df_IA[
+                (df_IA['PROCESS_PLAN_ID'] == selected_plan_id_IA) & 
+                (df_IA['PART_PROGRAM'] == selected_program_IA)
+            ]
+            filtered_dfs.append(filtered)
+
+        # Combine all filtered results into one DataFrame
+        combined_df = pd.concat(filtered_dfs, ignore_index=True)
+
+        # Display combined data
+        st.write(f"### Combined Entries for Selected PLAN_PROGRAMs:")
+        st.dataframe(combined_df)
+
 
 ## Override Inspection B ##
 st.divider()
+st.subheader("Override on Inspection B Report:")
 
+# Count by PROCESS_PLAN_ID
+df_count_IB = df_IB.groupby(['PROCESS_PLAN_ID'], observed=True).size().reset_index(name='Count')
+
+# Top 20 by frequency
+df_top10_IB = df_count_IB.sort_values(by='Count', ascending=False).head(20)
+
+# Treat PLAN_ID as string for plotting
+df_top10_IB['PLAN_ID'] = df_top10_IB['PROCESS_PLAN_ID'].astype(str)
+
+# Create the bar chart with PLAN_ID as both x and color
+fig_IB = px.bar(
+    df_top10_IB,
+    x='PLAN_ID',
+    y='Count', 
+    color='PLAN_ID',  # use PLAN_ID here to fix the legend/key
+    text='Count',
+    title="Top 10 Most Frequent PROCESS_PLAN_IDs",
+    labels={"PLAN_ID": "PROCESS_PLAN_ID", "Count": "Number of Overrides"},
+    hover_data={'PROCESS_PLAN_ID': True, 'Count': True},
+    category_orders={"PLAN_ID": df_top10_IB['PLAN_ID'].tolist()}
+)
+
+# Force categorical axis and improve layout
+fig_IB.update_layout(
+    xaxis=dict(
+        tickangle=-45,
+        type='category'
+    ),
+    xaxis_title="PROCESS_PLAN_ID",
+    yaxis_title="Count",
+    bargap=0.2,
+    width=1000,
+    height=500,
+    legend_title_text="PROCESS_PLAN_ID"
+)
+
+fig_IB.update_traces(textposition='outside')
+st.plotly_chart(fig_IB, use_container_width=True)
+
+# Deep Dive into data
+with st.form('IB_Deep_Dive'):
+    selected_plan_ids_IB = st.multiselect(
+        "Select one or more Process Plan IDs", 
+        df_top10_IB['PLAN_ID']
+    )
+    IB_submit = st.form_submit_button('Submit')
+
+    if IB_submit and selected_plan_ids_IB:
+        selected_plan_ids_IB = [int(pid) for pid in selected_plan_ids_IB]
+
+        # Filter rows where PROCESS_PLAN_ID is in selected list
+        combined_df = df_IB[df_IB['PROCESS_PLAN_ID'].isin(selected_plan_ids_IB)].reset_index(drop=True)
+
+        st.write("### Combined Entries for Selected PROCESS_PLAN_IDs:")
+        st.dataframe(combined_df)
