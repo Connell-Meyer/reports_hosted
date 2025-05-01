@@ -2,12 +2,12 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# System dependencies for unzip
+# System dependencies for unzip and potential Oracle deps
 RUN apt-get update && \
-    apt-get install -y unzip build-essential libaio-dev -y && \
+    apt-get install -y unzip build-essential libaio-dev libnsl2 -y && \
     apt-get clean
 
-# Create the /opt/oracle directory and a lib subdirectory
+# Create the /opt/oracle/lib directory
 RUN mkdir -p /opt/oracle/lib
 
 # Copy the Oracle Instant Client ZIP file (full basic version)

@@ -24,6 +24,7 @@ def get_oracle_connection():
     # Only initialize once
     if not oracle_client_initialized:
         try:
+            os.environ['LD_LIBRARY_PATH'] = "/opt/oracle/lib:" + os.environ.get('LD_LIBRARY_PATH', '')
             cx_Oracle.init_oracle_client(lib_dir="/opt/oracle/lib")  # Updated path for Linux
             oracle_client_initialized = True
         except cx_Oracle.ProgrammingError as e:
