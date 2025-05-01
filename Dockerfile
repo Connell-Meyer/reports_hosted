@@ -7,6 +7,9 @@ RUN apt-get update && \
     apt-get install -y unzip build-essential libaio-dev -y && \
     apt-get clean
 
+# Create the /opt/oracle directory
+RUN mkdir -p /opt/oracle
+
 # Copy the Oracle Instant Client ZIP file (full basic version)
 COPY oracle/instantclient-basic-linux.x64-21.12.0.0.0dbru.el9.zip .
 
