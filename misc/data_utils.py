@@ -1,22 +1,39 @@
 # data_utils.py
 # This is a place for Data related functions to be called on in the main code
 import pandas as pd
-import oracledb
+import os
+import cx_Oracle
+from dotenv import load_dotenv
+
+# Load environment variables from .env file (for local development)
+load_dotenv()
+
+# Track whether the client has been initialized
+oracle_client_initialized = False
 
 def get_oracle_connection():
-    # Use thin mode explicitly (recommended for cloud deployment)
-    oracledb.init_oracle_client(lib_dir=None)  # optional in thin mode; can be removed
+    global oracle_client_initialized
 
-    # Correct DSN format for thin mode
-    dsn = oracledb.makedsn('mtora11.meyertool.com', 1521, service_name='mpcs_stby.meyertool.com')
+    user = os.getenv("DB_USER")
+    password = os.getenv("DB_PASSWORD")
+    host = os.getenv("DB_HOST")
+    port = os.getenv("DB_PORT", "1521")
+    service = os.getenv("DB_SERVICE")
+    dsn = cx_Oracle.makedsn(host, port, service_name=service)
 
-    # Connecting with the proper DSN
-    return oracledb.connect(
-        user="CPHILLIPPS",
-        password="readonly4887",
-        dsn=dsn,
-        mode=oracledb.DEFAULT_AUTH
-    )
+    # Only initialize once
+    if not oracle_client_initialized:
+        try:
+            cx_Oracle.init_oracle_client(lib_dir=r"C:\oracle\instantclient_21_17")  # Update path if needed
+            oracle_client_initialized = True
+        except cx_Oracle.ProgrammingError as e:
+            # Raised if already initialized — safe to ignore
+            pass
+        except Exception as e:
+            raise RuntimeError("Oracle Client initialization failed. Make sure Instant Client is installed.") from e
+
+    return cx_Oracle.connect(user=user, password=password, dsn=dsn)
+
 
 def build_queries(start_date_str, end_date_str):
     query_IA = f"""

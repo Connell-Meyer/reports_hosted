@@ -1,0 +1,32 @@
+# Don't include local environment secrets
+.env
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Virtual environments
+env/
+venv/
+.venv/
+
+# Streamlit artifacts
+.streamlit/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git metadata
+.git/
+.gitignore
+
+# Build/output folders
+*.log
+*.sqlite3
+*.db
+*.zip
+*.tar.gz
