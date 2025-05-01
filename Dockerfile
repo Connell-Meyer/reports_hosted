@@ -16,19 +16,22 @@ COPY oracle/instantclient-basic-linux.x64-21.12.0.0.0dbru.el9.zip .
 # Unzip the Instant Client
 RUN unzip instantclient-basic-linux.x64-21.12.0.0.0dbru.el9.zip -d /opt/oracle/temp_instantclient
 
-# Move the library files to the designated lib directory
-RUN mv /opt/oracle/temp_instantclient/* /opt/oracle/lib/ && \
-    rm -rf /opt/oracle/temp_instantclient \
-           instantclient-basic-linux.x64-21.12.0.0.0dbru.el9.zip
+# Move the .so files to /opt/oracle/lib
+RUN find /opt/oracle/temp_instantclient -name "*.so*" -exec mv {} /opt/oracle/lib \;
 
 # Create symbolic links for libclntsh.so (common older versions)
 RUN cd /opt/oracle/lib && \
-    ln -sf libclntsh.so.21.1 libclntsh.so && \
-    ln -sf libclntsh.so.21.1 libclntsh.so.11.1 && \
-    ln -sf libclntsh.so.21.1 libclntsh.so.12.1 && \
-    ln -sf libclntsh.so.21.1 libclntsh.so.18.1 && \
-    ln -sf libclntsh.so.21.1 libclntsh.so.19.1 && \
-    ln -sf libclntsh.so.21.1 libclntsh.so.20.1
+    if [ -f libclntsh.so.21.1 ]; then \
+        ln -sf libclntsh.so.21.1 libclntsh.so; \
+        ln -sf libclntsh.so.21.1 libclntsh.so.11.1; \
+        ln -sf libclntsh.so.21.1 libclntsh.so.12.1; \
+        ln -sf libclntsh.so.21.1 libclntsh.so.18.1; \
+        ln -sf libclntsh.so.21.1 libclntsh.so.19.1; \
+        ln -sf libclntsh.so.21.1 libclntsh.so.20.1; \
+    fi
+
+# Remove the temporary directory and the zip file
+RUN rm -rf /opt/oracle/temp_instantclient instantclient-basic-linux.x64-21.12.0.0.0dbru.el9.zip
 
 # Set LD_LIBRARY_PATH
 ENV LD_LIBRARY_PATH=/opt/oracle/lib:$LD_LIBRARY_PATH
