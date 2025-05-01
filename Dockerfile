@@ -21,6 +21,15 @@ RUN mv /opt/oracle/temp_instantclient/* /opt/oracle/lib/ && \
     rm -rf /opt/oracle/temp_instantclient \
            instantclient-basic-linux.x64-21.12.0.0.0dbru.el9.zip
 
+# Create symbolic links for libclntsh.so (common older versions)
+RUN cd /opt/oracle/lib && \
+    ln -sf libclntsh.so.21.1 libclntsh.so && \
+    ln -sf libclntsh.so.21.1 libclntsh.so.11.1 && \
+    ln -sf libclntsh.so.21.1 libclntsh.so.12.1 && \
+    ln -sf libclntsh.so.21.1 libclntsh.so.18.1 && \
+    ln -sf libclntsh.so.21.1 libclntsh.so.19.1 && \
+    ln -sf libclntsh.so.21.1 libclntsh.so.20.1
+
 # Set LD_LIBRARY_PATH
 ENV LD_LIBRARY_PATH=/opt/oracle/lib:$LD_LIBRARY_PATH
 ENV PATH="/opt/oracle:$PATH"
