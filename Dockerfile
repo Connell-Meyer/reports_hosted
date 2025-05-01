@@ -7,19 +7,22 @@ RUN apt-get update && \
     apt-get install -y unzip build-essential libaio-dev -y && \
     apt-get clean
 
-# Create the /opt/oracle directory
-RUN mkdir -p /opt/oracle
+# Create the /opt/oracle directory and a lib subdirectory
+RUN mkdir -p /opt/oracle/lib
 
 # Copy the Oracle Instant Client ZIP file (full basic version)
 COPY oracle/instantclient-basic-linux.x64-21.12.0.0.0dbru.el9.zip .
 
-# Unzip and move the Instant Client libraries
-RUN unzip instantclient-basic-linux.x64-21.12.0.0.0dbru.el9.zip && \
-    # Assuming the extracted directory is 'instantclient_21_12' (check after unzipping locally)
-    mv instantclient_21_12/* /opt/oracle/ && \
-    rm -rf instantclient_21_12 instantclient-basic-linux.x64-21.12.0.0.0dbru.el9.zip
+# Unzip the Instant Client
+RUN unzip instantclient-basic-linux.x64-21.12.0.0.0dbru.el9.zip -d /opt/oracle/temp_instantclient
 
-ENV LD_LIBRARY_PATH=/opt/oracle:$LD_LIBRARY_PATH
+# Move the library files to the designated lib directory
+RUN mv /opt/oracle/temp_instantclient/* /opt/oracle/lib/ && \
+    rm -rf /opt/oracle/temp_instantclient \
+           instantclient-basic-linux.x64-21.12.0.0.0dbru.el9.zip
+
+# Set LD_LIBRARY_PATH
+ENV LD_LIBRARY_PATH=/opt/oracle/lib:$LD_LIBRARY_PATH
 ENV PATH="/opt/oracle:$PATH"
 
 COPY . .
