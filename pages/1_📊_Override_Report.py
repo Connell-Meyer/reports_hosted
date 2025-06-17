@@ -208,7 +208,7 @@ with st.form('IA_Deep_Dive'):
 
 ## Override Inspection B ##
 st.divider()
-st.subheader("Override on Inspection B Report:")
+st.subheader("Audit Program Override Report:")
 
 # Count by PROCESS_PLAN_ID
 df_count_IB = df_IB.groupby(['PROCESS_PLAN_ID'], observed=True).size().reset_index(name='Count')

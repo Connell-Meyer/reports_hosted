@@ -62,9 +62,9 @@ df_MMF = run_query(conn, query_MMF_sum)
 conn.close()
 
 # Add source labels
-df_IA['SOURCE'] = 'IA'
-df_IB['SOURCE'] = 'IB'
-df_MMF['SOURCE'] = 'MMF'
+df_IA['SOURCE'] = 'Inspection Override'
+df_IB['SOURCE'] = 'Audit Program Override'
+df_MMF['SOURCE'] = 'Missing Manufaturing Feature'
 
 # Combine all into one DataFrame
 df_all = pd.concat([df_IA, df_IB, df_MMF], ignore_index=True)

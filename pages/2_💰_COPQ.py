@@ -1,6 +1,8 @@
 ### Initialization Improts ###
 import streamlit as st
+import pandas as pd
 
+df = pd.read_csv(r"\\mti\fileshares\HQ DCI\Connell Phillipps\test_data.csv")
 
 ### Page Setup ###
 st.set_page_config(
@@ -16,4 +18,6 @@ st.logo('./misc/meyer-logo.png')
 st.title("Cost of Poor Quality")
 st.markdown("WORK IN PROGRESS")
 
+st.markdown("Test")
+st.dataframe(df)
 
